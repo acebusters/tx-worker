@@ -1,0 +1,27 @@
+{
+  "name": "ab-tx-worker",
+  "version": "0.1.1",
+  "description": "a worker taking transaction receipts and publishing them to blockchain.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha index.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/johba/ab-tx-worker.git"
+  },
+  "author": "acebusters",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.0.2",
+    "node-lambda": "^0.8.7",
+    "sinon": "^1.17.5",
+    "sinon-chai": "^2.8.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.5.3",
+    "babel-runtime": "^6.11.6",
+    "ethereumjs-util": "^5.1.1",
+    "web3": "^0.18.2"
+  }
+}
