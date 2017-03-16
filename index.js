@@ -6,6 +6,7 @@ var TxWorker = require('./lib/index');
 var web3Provider;
 
 exports.handler = function(event, context, callback) {
+  context.callbackWaitsForEmptyEventLoop = false;
 
   if (event.context['http-method'] != 'GET') {
     console.log('Request received:\n', JSON.stringify(event));
@@ -22,7 +23,7 @@ exports.handler = function(event, context, callback) {
   var path = event.context['resource-path'];
 
   // set up web3 and worker
-  if (!provider) {
+  if (!web3Provider) {
     var web3 = new Web3();
     web3Provider = new web3.providers.HttpProvider(providerUrl);
   }
