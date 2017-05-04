@@ -4,7 +4,7 @@
   "description": "a worker taking transaction receipts and publishing them to blockchain.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha index.test.js"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
