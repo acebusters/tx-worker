@@ -1,7 +1,7 @@
 const chai      = require('chai');
 const sinon     = require('sinon');
 const sinonChai = require('sinon-chai');
-const faucet    = require('../faucet');
+const faucet    = require('../controllers/faucet');
 
 const expect    = chai.expect;
 
