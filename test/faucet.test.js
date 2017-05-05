@@ -15,11 +15,18 @@ var mkMockObj = function (fn, extra) {
     walletAddr: 'FAKE_WALLET_ADDRESS',
     amount: 999,
     provider: {
+      getSenderAddr: function () {
+        return 'NOT_A_SENDER_ADDR';
+      },
       getController: function () {
         return {
           sendTx: {
-            sendTransaction: function (addr, amount) {
-              return fn && fn(addr, amount);
+            sendTransaction: function (addr, amount, obj, callback) {
+              try {
+                callback(null, fn && fn(addr, amount));
+              } catch (e) {
+                callback(e);
+              }
             }
           }
         };
@@ -100,13 +107,16 @@ describe('Faucet', function () {
     }).to.not.throw(Error);
   });
 
-  it('sendEther', function () {
+  it('sendEther', function (done) {
     var fn      = sinon.spy(function () { return 'foobar'; });
     var mockObj = mkMockObj(fn);
-    var ret     = faucet.sendEther(mockObj);
 
-    expect(ret).to.eql('foobar');
-    expect(fn.calledWith(mockObj.event.addr, mockObj.amount)).to.be.true;
+    faucet.sendEther(mockObj)
+    .then(function (ret) {
+      expect(ret).to.eql('foobar');
+      expect(fn.calledWith(mockObj.event.addr, mockObj.amount)).to.be.true;
+      done();
+    });
   });
 
   describe('** faucet handler **', function () {
