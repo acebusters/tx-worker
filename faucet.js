@@ -5,6 +5,7 @@ var ABI = require('./lib/abi');
 
 var WALLET_CONTROLLER_ADDRESS = 'TO BE FILLED';
 var AMOUNT_TO_SEND            = 100;
+var GAS                       = 54000;
 
 var passOn = function passOn(key, fn) {
   return function genByPassOn(obj) {
@@ -13,7 +14,7 @@ var passOn = function passOn(key, fn) {
     return Promise.resolve(fn(prevObj))
       .then(function (value) {
         prevObj[key] = value;
-        return prevObj; 
+        return prevObj;
       });
   };
 };
@@ -26,7 +27,7 @@ var processParams = function checkParams(obj) {
   }
 
   if (!utils.isAddress(event.addr)) {
-    throw new Error('faucet: invalid addr'); 
+    throw new Error('faucet: invalid addr');
   }
 
   return event;
@@ -56,10 +57,22 @@ var sendEther = function sendEther(obj) {
   var event       = obj.event;
   var walletAddr  = obj.walletAddr;
   var amount      = obj.amount;
+  var gas         = obj.gas;
   var addr        = event.addr;
   var controller  = obj.provider.getController(walletAddr);
+  var senderAddr  = obj.provider.getSenderAddr();
 
-  return controller.sendTx.sendTransaction(addr, amount);
+  return new Promise(function (resolve, reject) {
+    controller.sendTx.sendTransaction(
+      addr,
+      amount,
+      { from: senderAddr, gas: gas },
+      function (err, data) {
+        if (err)  return reject(err);
+        return resolve(data);
+      }
+    );
+  });
 };
 
 var handler = function(event, context, callback) {
@@ -69,6 +82,7 @@ var handler = function(event, context, callback) {
       event:      event,
       walletAddr: WALLET_CONTROLLER_ADDRESS,
       amount:     AMOUNT_TO_SEND,
+      gas:        GAS,
     })
     .then(passOn('event', processParams))
     .then(passOn('provider', getProvider))
