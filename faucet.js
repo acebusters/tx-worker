@@ -3,9 +3,9 @@ var utils = require('./lib/utils');
 var Provider = require('./lib/provider');
 var ABI = require('./lib/abi');
 
-var WALLET_CONTROLLER_ADDRESS = 'TO BE FILLED';
+var WALLET_CONTROLLER_ADDRESS = '0x965491745e24265711775386a33dbae46fc9923d';
 var AMOUNT_TO_SEND            = 100;
-var GAS                       = 54000;
+var GAS                       = new BigNumber('1000000000000000000');;
 
 var passOn = function passOn(key, fn) {
   return function genByPassOn(obj) {
