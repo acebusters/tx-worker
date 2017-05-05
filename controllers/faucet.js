@@ -1,7 +1,8 @@
 var Web3 = require('web3');
-var utils = require('./lib/utils');
-var Provider = require('./lib/provider');
-var ABI = require('./lib/abi');
+var BigNumber = require('bignumber.js');
+var utils = require('../lib/utils');
+var Provider = require('../lib/provider');
+var ABI = require('../lib/abi');
 
 var WALLET_CONTROLLER_ADDRESS = '0x965491745e24265711775386a33dbae46fc9923d';
 var AMOUNT_TO_SEND            = 100;
@@ -76,8 +77,6 @@ var sendEther = function sendEther(obj) {
 };
 
 var handler = function(event, context, callback) {
-  context.callbackWaitsForEmptyEventLoop = false;
-
   return Promise.resolve({
       event:      event,
       walletAddr: WALLET_CONTROLLER_ADDRESS,
