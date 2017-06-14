@@ -29,14 +29,7 @@ exports.handler = function handler(event, context, callback) {
   // handle request
   let handleRequest;
   if (path.indexOf('forward') > -1) {
-    handleRequest = worker.forward(
-      event.signer,
-      event.nonceAndDest,
-      event.data, {
-        r: event.r,
-        s: event.s,
-        v: event.v,
-      });
+    handleRequest = worker.forward(event.forwardReceipt);
   } else {
     handleRequest = Promise.reject(`Error: unexpected path: ${path}`);
   }
