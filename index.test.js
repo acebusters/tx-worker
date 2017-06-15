@@ -36,6 +36,10 @@ const controller = {
   },
 };
 
+const pusher = {
+  trigger() {},
+};
+
 describe('Transaction Worker forward', () => {
   beforeEach(() => {
     sinon.stub(provider, 'getFactory').returns(factory);
@@ -47,7 +51,7 @@ describe('Transaction Worker forward', () => {
     if (provider.getFactory.restore) provider.getFactory.restore();
     if (provider.getProxy.restore) provider.getProxy.restore();
     if (provider.getController.restore) provider.getController.restore();
-
+    if (pusher.trigger.restore) pusher.trigger.restore();
     if (factory.signerToProxy.call.restore) factory.signerToProxy.call.restore();
     if (proxy.owner.call.restore) proxy.owner.call.restore();
     if (controller.forward.sendTransaction.restore) controller.forward.sendTransaction.restore();
@@ -96,15 +100,16 @@ describe('Transaction Worker forward', () => {
   });
 
   it('should allow to send tx.', (done) => {
-    const forwardReceipt = 'M4YP.xDhutyr0WPwVJmxSkrTeM4sANo+8ka4sp4gifJD7Yc4=.bBPpVZqA9ZH6Jn6cBo82m3Sa7Fb1sUutpGRT+FwYAtE=.G93u/wARIjMAAAAOgujGz0LI0f+VlLF6P1DpShLMhg8=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB1MA=.CV6nswAAAAAAAAAAAAAAANsovF4AQLICksFAvCVnoL3LcDxaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkYTnKgAA=';
+    const forwardReceipt = 'M3H7.MNZGDLtAeTTotcF1RaTQC9yxTG1v872In6Gsya76od8=.KFBvWNlOMlaQ4Ig2S8d7cC4sBru9Vrg7H2vcdoCKyhM=.G8vPm8PCpXAAAAAJ+MBn16c2YEpuxSOND1mmlhVVaEI=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.koQ4zQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9AAAAAAAAAAAAAAAAAA+SccfDWbn6bznUytzcR/sW8cfsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABA==';
     const txHash = '0xd797353793ef8d7007997b7fa9802a2945116c608afd3adfb84e8005a81ea2b2';
-
+    sinon.stub(pusher, 'trigger').returns(null);
     sinon.stub(factory.signerToProxy, 'call').yields(null, ADDR1);
     sinon.stub(proxy.owner, 'call').yields(null, ADDR1);
     sinon.stub(controller.forward, 'sendTransaction').yields(null, txHash);
 
-    new TxWorker(provider).forward(forwardReceipt).then((rsp) => {
+    new TxWorker(provider, pusher).forward(forwardReceipt).then((rsp) => {
       expect(rsp).to.eql({ txHash });
+      expect(pusher.trigger).callCount(1);
       expect(controller.forward.sendTransaction).calledWith(
         ...Receipt.parseToParams(forwardReceipt), sinon.match.any);
       done();

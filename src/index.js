@@ -1,11 +1,13 @@
 import { Receipt } from 'poker-helper';
 
-function TxWorker(provider) {
+function TxWorker(provider, pusher) {
   this.provider = provider;
+  this.pusher = pusher;
 }
 
 TxWorker.prototype.forward = function forward(forwardReceipt) {
   let receipt;
+  let txHash;
   try {
     receipt = Receipt.parse(forwardReceipt);
   } catch (e) {
@@ -19,7 +21,14 @@ TxWorker.prototype.forward = function forward(forwardReceipt) {
   return controllerAddrPomise.then((_controllerAddr) => {
     controllerAddr = _controllerAddr;
     return this.forwardSendTx(forwardReceipt, controllerAddr, sender, 540000);
-  });
+  }).then((rsp) => {
+    txHash = rsp;
+    if (receipt.data.indexOf('0x928438cd') > -1) {
+      return this.publishUpdate(receipt.destinationAddr, receipt);
+    } else {
+      Promise.resolve();
+    }
+  }).then(() => Promise.resolve(txHash));
 };
 
 TxWorker.prototype.forwardSendTx = function forwardSendTx(forwardReceipt,
@@ -69,6 +78,20 @@ TxWorker.prototype.getProxyAddr = function getProxyAddr(signerAddr) {
       }
       fulfill(proxyAddr);
     });
+  });
+};
+
+TxWorker.prototype.publishUpdate = function publishUpdate(topic, msg) {
+  return new Promise((fulfill, reject) => {
+    try {
+      const rsp = this.pusher.trigger(topic, 'update', {
+        type: 'chatMessage',
+        payload: msg
+      });
+      fulfill(rsp);
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 
