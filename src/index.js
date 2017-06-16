@@ -85,7 +85,7 @@ TxWorker.prototype.publishUpdate = function publishUpdate(topic, msg) {
   return new Promise((fulfill, reject) => {
     try {
       const rsp = this.pusher.trigger(topic, 'update', {
-        type: 'chatMessage',
+        type: 'joinRequest',
         payload: msg
       });
       fulfill(rsp);
