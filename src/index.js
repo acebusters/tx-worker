@@ -7,7 +7,6 @@ function TxWorker(provider, pusher) {
 
 TxWorker.prototype.forward = function forward(forwardReceipt) {
   let receipt;
-  let txHash;
   try {
     receipt = Receipt.parse(forwardReceipt);
   } catch (e) {
@@ -19,16 +18,14 @@ TxWorker.prototype.forward = function forward(forwardReceipt) {
   let controllerAddr;
   const sender = this.provider.getSenderAddr();
   return controllerAddrPomise.then((_controllerAddr) => {
+    const proms = [];
     controllerAddr = _controllerAddr;
-    return this.forwardSendTx(forwardReceipt, controllerAddr, sender, 540000);
-  }).then((rsp) => {
-    txHash = rsp;
+    proms.push(this.forwardSendTx(forwardReceipt, controllerAddr, sender, 540000));
     if (receipt.data.indexOf('0x928438cd') > -1) {
-      return this.publishUpdate(receipt.destinationAddr, receipt);
-    } else {
-      Promise.resolve();
+      proms.push(this.publishUpdate(receipt.destinationAddr, receipt));
     }
-  }).then(() => Promise.resolve(txHash));
+    return Promise.all(proms);
+  }).then(rsp => Promise.resolve(rsp[0]));
 };
 
 TxWorker.prototype.forwardSendTx = function forwardSendTx(forwardReceipt,
@@ -86,7 +83,7 @@ TxWorker.prototype.publishUpdate = function publishUpdate(topic, msg) {
     try {
       const rsp = this.pusher.trigger(topic, 'update', {
         type: 'joinRequest',
-        payload: msg
+        payload: msg,
       });
       fulfill(rsp);
     } catch (err) {
