@@ -12,27 +12,26 @@ TxWorker.prototype.forward = function forward(forwardReceipt) {
   } catch (e) {
     return Promise.reject(`Bad Request: ${e}`);
   }
-  const controllerAddrPomise = this.getProxyAddr(receipt.signer)
-    .then(proxyAddr => this.getControllerAddr(proxyAddr))
-    .then(controllerAddr => Promise.resolve(controllerAddr));
-  let controllerAddr;
   const sender = this.provider.getSenderAddr();
-  return controllerAddrPomise.then((_controllerAddr) => {
+  return this.getAccount(receipt.signer).then((account) => {
     const proms = [];
-    controllerAddr = _controllerAddr;
-    proms.push(this.forwardSendTx(forwardReceipt, controllerAddr, sender, 540000));
-    if (receipt.data.indexOf('0x928438cd') > -1) {
+    if (account.ownerAddr !== sender) {
+      return Promise.reject(`Bad Request: wrong owner ${account.ownerAddr} found on poxy ${account.proxyAddr}`);
+    }
+    proms.push(this.sendTx(account.proxyAddr,
+      receipt.destinationAddr, receipt.amount, receipt.data, sender, 540000));
+    if (receipt.data.indexOf(receipt.signer.replace('0x', '')) > -1) {
       proms.push(this.publishUpdate(receipt.destinationAddr, receipt));
     }
     return Promise.all(proms);
   }).then(rsp => Promise.resolve(rsp[0]));
 };
 
-TxWorker.prototype.forwardSendTx = function forwardSendTx(forwardReceipt,
-  controllerAddr, sender, gas) {
+TxWorker.prototype.sendTx = function sendTx(proxyAddr, destination,
+  value, data, sender, gas) {
   return new Promise((fulfill, reject) => {
-    const controller = this.provider.getController(controllerAddr);
-    controller.forward.sendTransaction(...Receipt.parseToParams(forwardReceipt),
+    const proxy = this.provider.getProxy(proxyAddr);
+    proxy.forward.sendTransaction(destination, value, data,
       { from: sender, gas }, (err, rsp) => {
         if (err) {
           reject(`Error: ${err}`);
@@ -43,37 +42,23 @@ TxWorker.prototype.forwardSendTx = function forwardSendTx(forwardReceipt,
   });
 };
 
-TxWorker.prototype.getControllerAddr = function getControllerAddr(proxyAddr) {
-  const self = this;
-  return new Promise((fulfill, reject) => {
-    const proxy = self.provider.getProxy(proxyAddr);
-    proxy.owner.call((err, controllerAddr) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      if (controllerAddr === '0x0000000000000000000000000000000000000000') {
-        reject(`Not Found: no owner contract found in proxy ${proxyAddr}`);
-        return;
-      }
-      fulfill(controllerAddr);
-    });
-  });
-};
-
-TxWorker.prototype.getProxyAddr = function getProxyAddr(signerAddr) {
+TxWorker.prototype.getAccount = function getAccount(signerAddr) {
   return new Promise((fulfill, reject) => {
     const factory = this.provider.getFactory();
-    factory.signerToProxy.call(signerAddr, (err, proxyAddr) => {
+    factory.getAccount.call(signerAddr, (err, rsp) => {
       if (err) {
-        reject(err);
-        return;
+        return reject(err);
       }
+      const proxyAddr = rsp[0];
+      const ownerAddr = rsp[1];
+      const isLocked = rsp[2];
       if (proxyAddr === '0x0000000000000000000000000000000000000000') {
-        reject(`Not Found: no proxy contract found for signer ${signerAddr}`);
-        return;
+        return reject(`Not Found: no proxy contract found for signer ${signerAddr}`);
       }
-      fulfill(proxyAddr);
+      if (!isLocked) {
+        return reject(`Bad Request: ${proxyAddr} is an unlocked account. send tx with ${ownerAddr}`);
+      }
+      return fulfill({ proxyAddr, ownerAddr, isLocked });
     });
   });
 };
