@@ -5,7 +5,7 @@ function TxWorker(provider, pusher) {
   this.pusher = pusher;
 }
 
-TxWorker.prototype.forward = function forward(forwardReceipt) {
+TxWorker.prototype.forward = function forward(forwardReceipt, signer) {
   let receipt;
   try {
     receipt = Receipt.parse(forwardReceipt);
@@ -13,7 +13,8 @@ TxWorker.prototype.forward = function forward(forwardReceipt) {
     return Promise.reject(`Bad Request: ${e}`);
   }
   const sender = this.provider.getSenderAddr();
-  return this.getAccount(receipt.signer).then((account) => {
+  // ToDo: THIS STUFF     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ SHOULD BE FIXED
+  return this.getAccount(signer || receipt.signer).then((account) => {
     const proms = [];
     if (account.ownerAddr !== sender) {
       return Promise.reject(`Bad Request: wrong owner ${account.ownerAddr} found on poxy ${account.proxyAddr}`);
@@ -52,7 +53,7 @@ TxWorker.prototype.getAccount = function getAccount(signerAddr) {
       const proxyAddr = rsp[0];
       const ownerAddr = rsp[1];
       const isLocked = rsp[2];
-      if (proxyAddr === '0x0000000000000000000000000000000000000000') {
+      if (proxyAddr === '0x') {
         return reject(`Not Found: no proxy contract found for signer ${signerAddr}`);
       }
       if (!isLocked) {
