@@ -9,7 +9,7 @@ chai.use(sinonChai);
 
 const ADDR1 = '0xe10f3d125e5f4c753a6456fc37123cf17c6900f2';
 const ADDR2 = '0xc3ccb3902a164b83663947aff0284c6624f3fbf2';
-const EMPTY = '0x0000000000000000000000000000000000000000';
+const EMPTY = '0x';
 
 const provider = {
   getFactory() {},

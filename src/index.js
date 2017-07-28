@@ -5,27 +5,28 @@ function TxWorker(provider, pusher) {
   this.pusher = pusher;
 }
 
-TxWorker.prototype.forward = function forward(forwardReceipt, signer) {
-  let receipt;
+TxWorker.prototype.forward = function forward(forwardReceipt, resetConfReceipt) {
   try {
-    receipt = Receipt.parse(forwardReceipt);
+    const receipt = Receipt.parse(forwardReceipt);
+    const resetReceipt = resetConfReceipt && Receipt.parse(resetConfReceipt);
+    const sender = this.provider.getSenderAddr();
+    return this.getAccount(
+      resetReceipt ? resetReceipt.oldSignerAddr : receipt.signer,
+    ).then((account) => {
+      const proms = [];
+      if (account.ownerAddr !== sender) {
+        return Promise.reject(`Bad Request: wrong owner ${account.ownerAddr} found on poxy ${account.proxyAddr}`);
+      }
+      proms.push(this.sendTx(account.proxyAddr,
+        receipt.destinationAddr, receipt.amount, receipt.data, sender, 540000));
+      if (receipt.data.indexOf(receipt.signer.replace('0x', '')) > -1) {
+        proms.push(this.publishUpdate(receipt.destinationAddr, receipt));
+      }
+      return Promise.all(proms);
+    }).then(rsp => Promise.resolve(rsp[0]));
   } catch (e) {
     return Promise.reject(`Bad Request: ${e}`);
   }
-  const sender = this.provider.getSenderAddr();
-  // ToDo: THIS STUFF     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ SHOULD BE FIXED
-  return this.getAccount(signer || receipt.signer).then((account) => {
-    const proms = [];
-    if (account.ownerAddr !== sender) {
-      return Promise.reject(`Bad Request: wrong owner ${account.ownerAddr} found on poxy ${account.proxyAddr}`);
-    }
-    proms.push(this.sendTx(account.proxyAddr,
-      receipt.destinationAddr, receipt.amount, receipt.data, sender, 540000));
-    if (receipt.data.indexOf(receipt.signer.replace('0x', '')) > -1) {
-      proms.push(this.publishUpdate(receipt.destinationAddr, receipt));
-    }
-    return Promise.all(proms);
-  }).then(rsp => Promise.resolve(rsp[0]));
 };
 
 TxWorker.prototype.sendTx = function sendTx(proxyAddr, destination,
